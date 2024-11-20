@@ -16,6 +16,8 @@
 #define USING_TIMER_TCC1        false
 #define USING_TIMER_TCC2        false     // Don't use this, can crash on some boards
 
+#include "config.h"
+
 /* Librerias para WiFi y envío de datos a ThingSpeak */
 #include <WiFiNINA.h>
 #include <ThingSpeak.h>
@@ -35,13 +37,14 @@
 #include "SAMD_ISR_Timer.h"
 
 // Configura la red WiFi
-const char* ssid = <YOUR_NAME_WIFI>;
-const char* password = <YOUR_WIFI_PASSWORD>;
+const char* ssid = MY_WIFI_SSID;
+const char* password = MY_WIFI_PASSWORD;
 
 // ThingSpeak
 WiFiClient client;
-unsigned long myChannelNumber = <YOUR_THINGSPEAK_CHANNEL>; // ID del canal de ThingSpeak
-const char* myWriteAPIKey = <YOUR_THINGSPEAK_API>; // API Key de escritura de tu canal
+unsigned long myChannelNumber = MY_ID_CHANNEL; // ID del canal de ThingSpeak
+const char* myWriteAPIKey = MY_API_KEY; // API Key de escritura de tu canal
+const bool TS_ENABLED = false;
 
 /* Configuración del DHT11 */
 #define DHTPIN 2        // Pin digital DHT11
@@ -132,7 +135,7 @@ void lecturaDHT11() {
     Serial.println("Error al leer el sensor DHT11");
     return;
   }
-
+    
   sendDataToThingspeak(temperatura, TYPE_FIELD_TEMPERATURA);
   sendDataToThingspeak(humedad, TYPE_FIELD_HUMEDAD);
 
@@ -189,12 +192,15 @@ void lecturaSCD41(){
 
 void sendDataToThingspeak(float valor, int typeField) {
 
+  if(TS_ENABLED){
     ThingSpeak.setField(typeField, valor);
 
     // Enviar los datos
     ThingSpeak.writeFields(myChannelNumber, myWriteAPIKey);
 
-     delay(15000);
+    delay(15000);
+  }
+    
 }
 
 /* SETUP */
@@ -202,17 +208,19 @@ void setup(){
   Serial.begin(9600);
   delay(100);
 
-  // Verificación conexión WiFi
-  if (WiFi.status() != WL_CONNECTED) {
-        Serial.println("WiFi desconectado. Reconectando...");
-        while (WiFi.status() != WL_CONNECTED) {
-            WiFi.begin(ssid, password);
-            delay(5000);
-        }
-        Serial.println("Reconectado al WiFi");
+  if(TS_ENABLED){
+    // Verificación conexión WiFi
+    if (WiFi.status() != WL_CONNECTED) {
+          Serial.println("WiFi desconectado. Reconectando...");
+          while (WiFi.status() != WL_CONNECTED) {
+              WiFi.begin(ssid, password);
+              delay(5000);
+          }
+          Serial.println("Reconectado al WiFi");
     }
 
-  ThingSpeak.begin(client);
+    ThingSpeak.begin(client);
+  }
   
   dht.begin(); // Inicialización DHT11
   bmp180.begin(); // Inicialización BMP180
